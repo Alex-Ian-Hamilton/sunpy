@@ -13,7 +13,7 @@ Maps
 ----
 Maps are the primary data type in SunPy they are spatially and / or temporally aware 
 data arrays. There are maps for a 2D image, a time series of 2D images or temporally aligned 2D images. 
-Making a map of your data is the normally the first step in using SunPy to work with your data. 
+Making a map of your data is normally the first step in using SunPy to work with your data. 
 
 **Creating a Map**
 
@@ -161,7 +161,7 @@ and times. Here is a short example: ::
     sunpy.time.julian_day((2010,4,30))
     
     # TimeRange objects are useful for representing ranges of time
-    sunpy.time.time_range = TimeRange('2010/03/04 00:10', '2010/03/04 00:20')
+    time_range = sunpy.time.TimeRange('2010/03/04 00:10', '2010/03/04 00:20')
     time_range.center()
 
 For more information about working with time in SunPy checkout the :doc:`time guide <time>`.
