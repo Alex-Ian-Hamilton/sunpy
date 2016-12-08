@@ -679,7 +679,11 @@ def entries_from_file(file, default_waveunit=None):
                         entry.observation_time_end = datetime.strptime(tstr, "%d/%m/%Y %H:%M:%S.%f")
                     except ValueError:
                         tstr = value + ' ' + header['TIME-END']
-                        entry.observation_time_end = datetime.strptime(tstr, "%d/%m/%y %H:%M:%S")
+                        try:
+                            entry.observation_time_end = datetime.strptime(tstr, "%d/%m/%y %H:%M:%S")
+                        except ValueError:
+                            entry.observation_time_end = datetime.strptime(tstr, "%d/%m/%y %H%M:%S")
+
                 else:
                     if 'goes' in instrument_name.lower():
                         entry.observation_time_end = datetime.strptime(value + ' 23:59:59', "%d/%m/%y %H:%M:%S")
@@ -695,7 +699,10 @@ def entries_from_file(file, default_waveunit=None):
                     except ValueError:
                         # for older gies files GOES we need
                         tstr = value + ' ' + header['TIME-OBS']
-                        entry.observation_time_start = datetime.strptime(tstr, "%d/%m/%y %H:%M:%S")
+                        try:
+                            entry.observation_time_start = datetime.strptime(tstr, "%d/%m/%y %H:%M:%S")
+                        except ValueError:
+                            entry.observation_time_start = datetime.strptime(tstr, "%d/%m/%y %H%M:%S")
                 else:
                     try:
                         entry.observation_time_start = parse_time(value)
