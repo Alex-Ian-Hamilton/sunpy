@@ -11,6 +11,7 @@ import warnings
 from abc import ABCMeta
 from collections import OrderedDict
 import copy
+import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -574,6 +575,9 @@ class GenericTimeSeries:
             the result will be of dtype=object. See Notes.
         """
         return self.data.as_matrix(**kwargs)
+
+    def __repr__(self):
+        return (str(type(self)).replace('>','') + ' at ' + str(id(self)) + '>' + os.linesep + '---------' + os.linesep + 'Time Range: ' + str(self.time_range.start) + ' to ' + str(self.time_range.end) + os.linesep + 'Data Rows: ' + str(len(self.data)) + os.linesep + 'Data Columns: ' + str(len(self.data.keys())) + os.linesep + 'Metadata Entries: ' + str(len(self.meta.metadata)))
 
     def __eq__(self, other):
         """

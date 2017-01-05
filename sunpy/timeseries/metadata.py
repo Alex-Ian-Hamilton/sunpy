@@ -6,6 +6,7 @@ __email__ = "stuart@mumford.me.uk"
 from sunpy.util.metadata import MetaDict
 import itertools
 import copy
+import os
 
 import warnings
 import inspect
@@ -518,7 +519,7 @@ class TimeSeriesMetaData:
         # Parameters
         colspace = ' | '
         liswidths = (26, 15, width-2-2*len(colspace) - 26 - 15)
-        colheadings = '|' + 'TimeRange'.ljust(100)[:liswidths[0]] + colspace + 'Columns'.ljust(100)[:liswidths[1]] + colspace + 'Meta'.ljust(100)[:liswidths[2]]  + '|'
+        colheadings = '|' + 'TimeRange'.ljust(100)[:liswidths[0]] + colspace + 'ColNames'.ljust(100)[:liswidths[1]] + colspace + 'Metadata'.ljust(100)[:liswidths[2]]  + '|'
         rowspace = "-" * (liswidths[0] + len(colspace) + liswidths[1] + len(colspace) + liswidths[2])
         rowspace = '|' + rowspace + '|'
 
@@ -611,6 +612,6 @@ class TimeSeriesMetaData:
         return full
 
     def __repr__(self):
-        return self.to_string()
+        return (str(type(self)).replace('>','') + ' at ' + str(id(self)) + '>' + os.linesep + self.to_string())
     def __str__(self):
         return self.to_string()
