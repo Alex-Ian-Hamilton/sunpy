@@ -188,6 +188,21 @@ class TimeRange(object):
         result = self.dt.microseconds * u.Unit('us') + self.dt.seconds * u.Unit('s') + self.dt.days * u.Unit('day')
         return result
 
+    def __eq__(self, other):
+        """
+        Check two TimeRange objects have the same start and end datetime.
+
+        Parameters
+        ----------
+        other : `~sunpy.time.timerange.TimeRange`
+            The second TimeRange object to compare to.
+
+        Returns
+        -------
+        result : `bool`
+        """
+        return ((self.start == other.start) and (self.end == other.end))
+
     def __repr__(self):
         """
         Returns a human-readable representation of the TimeRange instance."""
@@ -212,7 +227,7 @@ class TimeRange(object):
         Parameters
         ----------
         n : int
-            The number of times to split the time range (must > 1)
+            The number of times to split the time range (must >= 1)
 
         Returns
         -------
@@ -327,6 +342,14 @@ class TimeRange(object):
         self._t1 = self._t1 + dt_start
         self._t2 = self._t2 + dt_end
 
+    def get_dates(self):
+        """
+        Return all partial days contained within the timerange
+        """
+        dates = []
+        dates =[ self.start.date() + timedelta(days=i) for i in range(int(self.days.value) + 1) ]
+        return dates
+
     def __contains__(self, time):
         """
         Checks whether the given time lies within this range.
@@ -356,3 +379,5 @@ class TimeRange(object):
         """
         this_time = parse_time(time)
         return this_time >= self.start and this_time <= self.end
+    
+  

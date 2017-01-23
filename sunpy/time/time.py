@@ -44,10 +44,12 @@ TIME_FORMAT_LIST = [
     "%Y-%m-%d",                # Example 2007-05-04
     "%Y/%m/%d",                # Example 2007/05/04
     "%d-%b-%Y",                # Example 04-May-2007
+    "%d-%b-%Y %H:%M:%S.%f",    # Example 04-May-2007 21:08:12.999999
     "%Y%m%d_%H%M%S",           # Example 20070504_210812
     "%Y:%j:%H:%M:%S",          # Example 2012:124:21:08:12
     "%Y:%j:%H:%M:%S.%f",       # Example 2012:124:21:08:12.999999
     "%Y%m%d%H%M%S",            # Example 20140101000001 (JSOC / VSO)
+    "%Y.%m.%d_%H:%M:%S_TAI",   # Example 2016.05.04_21:08:12_TAI
 ]
 
 
@@ -176,7 +178,7 @@ def parse_time(time_string, time_format=''):
     datetime.datetime(2005, 8, 4, 0, 1, 2)
     """
     if isinstance(time_string, pandas.tslib.Timestamp):
-    	return time_string.to_datetime()
+    	return time_string.to_pydatetime()
     elif isinstance(time_string, datetime) or time_format == 'datetime':
         return time_string
     elif isinstance(time_string, tuple):

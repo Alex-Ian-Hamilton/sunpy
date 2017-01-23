@@ -15,15 +15,19 @@ from sunpy.net.vso import attrs as va
 from sunpy.net.vso.vso import QueryResponse
 from sunpy.net import attr
 
-def pytest_funcarg__eit(request):
+
+@pytest.fixture
+def eit(request):
     return va.Instrument('eit')
 
 
-def pytest_funcarg__client(request):
+@pytest.fixture
+def client(request):
     return vso.VSOClient()
 
 
-def pytest_funcarg__iclient(request):
+@pytest.fixture
+def iclient(request):
     return vso.InteractiveVSOClient()
 
 
@@ -33,15 +37,18 @@ def test_simpleattr_apply():
     va.walker.apply(a, None, dct)
     assert dct['test'] == 1
 
+
 def test_Time_timerange():
-    t = va.Time(TimeRange('2012/1/1','2012/1/2'))
+    t = va.Time(TimeRange('2012/1/1', '2012/1/2'))
     assert isinstance(t, va.Time)
     assert t.min == datetime.datetime(2012, 1, 1)
     assert t.max == datetime.datetime(2012, 1, 2)
 
+
 def test_input_error():
     with pytest.raises(ValueError):
         va.Time('2012/1/1')
+
 
 @pytest.mark.online
 def test_simpleattr_create(client):
@@ -84,15 +91,11 @@ def test_complexattr_create(client):
 
 def test_complexattr_and_duplicate():
     attr = va.Time((2011, 1, 1), (2011, 1, 1, 1))
-    pytest.raises(
-        TypeError,
-        lambda: attr & va.Time((2011, 2, 1), (2011, 2, 1, 1))
-    )
+    pytest.raises(TypeError,
+                  lambda: attr & va.Time((2011, 2, 1), (2011, 2, 1, 1)))
     attr |= va.Source('foo')
-    pytest.raises(
-        TypeError,
-        lambda: attr & va.Time((2011, 2, 1), (2011, 2, 1, 1))
-    )
+    pytest.raises(TypeError,
+                  lambda: attr & va.Time((2011, 2, 1), (2011, 2, 1, 1)))
 
 
 def test_complexattr_or_eq():
@@ -105,21 +108,20 @@ def test_complexattr_or_eq():
 def test_attror_and():
     attr = va.Instrument('foo') | va.Instrument('bar')
     one = attr & va.Source('bar')
-    other = (
-        (va.Instrument('foo') & va.Source('bar')) |
-        (va.Instrument('bar') & va.Source('bar'))
-    )
+    other = ((va.Instrument('foo') & va.Source('bar')) |
+             (va.Instrument('bar') & va.Source('bar')))
     assert one == other
 
 
 def test_wave_inputQuantity():
     wrong_type_mesage = "Wave inputs must be astropy Quantities"
     with pytest.raises(TypeError) as excinfo:
-        va.Wave(10, 23)
+        va.Wavelength(10, 23)
         assert excinfo.value.message == wrong_type_mesage
     with pytest.raises(TypeError) as excinfo:
-        va.Wave(10 * u.AA, 23)
+        va.Wavelength(10 * u.AA, 23)
         assert excinfo.value.message == wrong_type_mesage
+
 
 def test_wave_toangstrom():
     # TODO: this test should test that inputs are in any of spectral units
@@ -134,55 +136,51 @@ def test_wave_toangstrom():
               (1e6, 1 * u.MeV)]
 
     for factor, unit in energy:
-        w = va.Wave((62 / factor) * unit, (62 / factor) * unit)
+        w = va.Wavelength((62 / factor) * unit, (62 / factor) * unit)
         assert int(w.min.to(u.AA, u.equivalencies.spectral()).value) == 199
 
-    w = va.Wave(62 * u.eV, 62 * u.eV)
+    w = va.Wavelength(62 * u.eV, 62 * u.eV)
     assert int(w.min.to(u.AA, u.equivalencies.spectral()).value) == 199
-    w = va.Wave(62e-3 * u.keV, 62e-3 * u.keV)
+    w = va.Wavelength(62e-3 * u.keV, 62e-3 * u.keV)
     assert int(w.min.to(u.AA, u.equivalencies.spectral()).value) == 199
 
     for factor, unit in frequency:
-        w = va.Wave((1.506e16 / factor) * unit, (1.506e16 / factor) * unit)
+        w = va.Wavelength((1.506e16 / factor) * unit, (1.506e16 / factor) * unit)
         assert int(w.min.to(u.AA, u.equivalencies.spectral()).value) == 199
 
-    w = va.Wave(1.506e16 * u.Hz, 1.506e16 * u.Hz)
+    w = va.Wavelength(1.506e16 * u.Hz, 1.506e16 * u.Hz)
     assert int(w.min.to(u.AA, u.equivalencies.spectral()).value) == 199
-    w = va.Wave(1.506e7 * u.GHz, 1.506e7 * u.GHz)
+    w = va.Wavelength(1.506e7 * u.GHz, 1.506e7 * u.GHz)
     assert int(w.min.to(u.AA, u.equivalencies.spectral()).value) == 199
 
-    with pytest.raises(ValueError) as excinfo:
-        va.Wave(10 * u.g, 23 * u.g)
-        assert excinfo.value.message == "'g' is not a spectral supported unit"
+    with pytest.raises(u.UnitsError) as excinfo:
+        va.Wavelength(10 * u.g, 23 * u.g)
+    assert 'This unit is not convertable to any of [Unit("Angstrom"), Unit("kHz"), Unit("keV")]' in str(excinfo)
 
 
 def test_time_xor():
     one = va.Time((2010, 1, 1), (2010, 1, 2))
     a = one ^ va.Time((2010, 1, 1, 1), (2010, 1, 1, 2))
 
-    assert a == attr.AttrOr(
-        [va.Time((2010, 1, 1), (2010, 1, 1, 1)),
-         va.Time((2010, 1, 1, 2), (2010, 1, 2))]
-    )
+    assert a == attr.AttrOr([va.Time((2010, 1, 1), (2010, 1, 1, 1)), va.Time(
+        (2010, 1, 1, 2), (2010, 1, 2))])
 
     a ^= va.Time((2010, 1, 1, 4), (2010, 1, 1, 5))
-    assert a == attr.AttrOr(
-        [va.Time((2010, 1, 1), (2010, 1, 1, 1)),
-         va.Time((2010, 1, 1, 2), (2010, 1, 1, 4)),
-         va.Time((2010, 1, 1, 5), (2010, 1, 2))]
-    )
+    assert a == attr.AttrOr([va.Time((2010, 1, 1), (2010, 1, 1, 1)), va.Time(
+        (2010, 1, 1, 2), (2010, 1, 1, 4)), va.Time((2010, 1, 1, 5),
+                                                   (2010, 1, 2))])
 
 
 def test_wave_xor():
-    one = va.Wave(0 * u.AA, 1000 * u.AA)
-    a = one ^ va.Wave(200 * u.AA, 400 * u.AA)
+    one = va.Wavelength(0 * u.AA, 1000 * u.AA)
+    a = one ^ va.Wavelength(200 * u.AA, 400 * u.AA)
 
-    assert a == attr.AttrOr([va.Wave(0 * u.AA, 200 * u.AA), va.Wave(400 * u.AA, 1000 * u.AA)])
+    assert a == attr.AttrOr([va.Wavelength(0 * u.AA, 200 * u.AA), va.Wavelength(400 * u.AA, 1000 * u.AA)])
 
-    a ^= va.Wave(600 * u.AA, 800 * u.AA)
+    a ^= va.Wavelength(600 * u.AA, 800 * u.AA)
 
     assert a == attr.AttrOr(
-        [va.Wave(0 * u.AA, 200 * u.AA), va.Wave(400 * u.AA, 600 * u.AA), va.Wave(800 * u.AA, 1000 * u.AA)])
+        [va.Wavelength(0 * u.AA, 200 * u.AA), va.Wavelength(400 * u.AA, 600 * u.AA), va.Wavelength(800 * u.AA, 1000 * u.AA)])
 
 
 def test_err_dummyattr_create():
@@ -194,12 +192,13 @@ def test_err_dummyattr_apply():
     with pytest.raises(TypeError):
         va.walker.apply(attr.DummyAttr(), None, {})
 
+
 def test_wave_repr():
     """Tests the __repr__ method of class vso.attrs.Wave"""
-    wav = vso.attrs.Wave(12 * u.AA, 16 * u.AA)
-    moarwav = vso.attrs.Wave(15 * u.AA, 12 * u.AA)
-    assert repr(wav) == "<Wave(12.0, 16.0, 'Angstrom')>"
-    assert repr(moarwav) == "<Wave(12.0, 15.0, 'Angstrom')>"
+    wav = vso.attrs.Wavelength(12 * u.AA, 16 * u.AA)
+    moarwav = vso.attrs.Wavelength(15 * u.AA, 12 * u.AA)
+    assert repr(wav) == "<Wavelength(12.0, 16.0, 'Angstrom')>"
+    assert repr(moarwav) == "<Wavelength(12.0, 15.0, 'Angstrom')>"
 
 def test_str():
     qr = QueryResponse([])

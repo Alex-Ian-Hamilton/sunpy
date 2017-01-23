@@ -8,6 +8,7 @@
 from __future__ import absolute_import, print_function
 
 import csv
+import socket
 from datetime import datetime
 from datetime import timedelta
 
@@ -16,14 +17,13 @@ import numpy as np
 from astropy.io import fits
 from astropy import units as u
 
-import sunpy.map
-import sunpy.sun.constants
-
 from sunpy.time import TimeRange, parse_time
 from sunpy.sun.sun import solar_semidiameter_angular_size
 from sunpy.sun.sun import sunearth_distance
 
 from sunpy.extern.six.moves import urllib
+from sunpy.extern.six.moves.urllib.request import urlopen
+from sunpy.extern.six.moves.urllib.error import URLError
 
 __all__ = ['get_obssumm_dbase_file', 'parse_obssumm_dbase_file',
            'get_obssum_filename', 'get_obssumm_file', 'parse_obssumm_file',
@@ -41,6 +41,20 @@ data_servers = ('http://hesperia.gsfc.nasa.gov/hessidata/',
 
 lc_linecolors = ('black', 'pink', 'green', 'blue', 'brown', 'red',
                  'navy', 'orange', 'green')
+
+
+def get_base_url():
+    """
+    Find the first mirror which is online
+    """
+
+    for server in data_servers:
+        try:
+            urlopen(server, timeout=1)
+        except (URLError, socket.timeout):
+            pass
+        else:
+            return server
 
 
 def get_obssumm_dbase_file(time_range):
@@ -79,7 +93,7 @@ def get_obssumm_dbase_file(time_range):
     _time_range = TimeRange(time_range)
     data_location = 'dbase/'
 
-    url_root = data_servers[0] + data_location
+    url_root = get_base_url() + data_location
     url = url_root + _time_range.start.strftime("hsi_obssumm_filedb_%Y%m.txt")
 
     f = urllib.request.urlretrieve(url)
@@ -187,7 +201,7 @@ def get_obssum_filename(time_range):
 
     index_number = _time_range.start.day - 1
 
-    return data_servers[0] + data_location + result.get('filename')[index_number] + 's'
+    return get_base_url() + data_location + result.get('filename')[index_number] + 's'
 
 
 def get_obssumm_file(time_range):
@@ -220,8 +234,7 @@ def get_obssumm_file(time_range):
     time_range = TimeRange(time_range)
     data_location = 'metadata/catalog/'
 
-    # TODO need to check which is the closest servers
-    url_root = data_servers[0] + data_location
+    url_root = get_base_url() + data_location
 
     url = url_root + get_obssum_filename(time_range)
 
@@ -234,6 +247,8 @@ def get_obssumm_file(time_range):
 def parse_obssumm_file(filename):
     """
     Parse a RHESSI observation summary file.
+    Note: this is for the Lightcurve datatype only, the TimSeries uses the
+    parse_obssumm_hdulist(hdulist) method to enable implicit source detection.
 
     Parameters
     ----------
@@ -266,6 +281,44 @@ def parse_obssumm_file(filename):
 
     # the data stored in the fits file are "compressed" countrates stored as one byte
     compressed_countrate = np.array(afits[6].data.field('countrate'))
+
+    countrate = uncompress_countrate(compressed_countrate)
+    dim = np.array(countrate[:,0]).size
+
+    time_array = [reference_time_ut + timedelta(0,time_interval_sec * a) for a in np.arange(dim)]
+
+    #TODO generate the labels for the dict automatically from labels
+    data = {'time': time_array, 'data': countrate, 'labels': labels}
+
+    return header, data
+
+def parse_obssumm_hdulist(hdulist):
+    """
+    Parse a RHESSI observation summary file.
+
+    Parameters
+    ----------
+    hdulist : list
+        The HDU list from the fits file.
+
+    Returns
+    -------
+    out : `dict`
+        Returns a dictionary.
+
+    """
+    header = hdulist[0].header
+
+    reference_time_ut = parse_time(hdulist[5].data.field('UT_REF')[0])
+    time_interval_sec = hdulist[5].data.field('TIME_INTV')[0]
+    # label_unit = fits[5].data.field('DIM1_UNIT')[0]
+    # labels = fits[5].data.field('DIM1_IDS')
+    labels = ['3 - 6 keV', '6 - 12 keV', '12 - 25 keV', '25 - 50 keV',
+              '50 - 100 keV', '100 - 300 keV', '300 - 800 keV', '800 - 7000 keV',
+              '7000 - 20000 keV']
+
+    # the data stored in the fits file are "compressed" countrates stored as one byte
+    compressed_countrate = np.array(hdulist[6].data.field('countrate'))
 
     countrate = uncompress_countrate(compressed_countrate)
     dim = np.array(countrate[:,0]).size
@@ -460,7 +513,7 @@ def backprojection(calibrated_event_list, pixel_size=(1., 1.) * u.arcsec,
         "DSUN_OBS": sunearth_distance(time_range.center()) * sunpy.sun.constants.au.value
     }
 
-    header = sunpy.map.MapMeta(dict_header)
+    header = sunpy.map.MetaDict(dict_header)
     result_map = sunpy.map.Map(image, header)
 
     return result_map

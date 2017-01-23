@@ -18,7 +18,7 @@ from astropy.coordinates import FrameAttribute
 
 from sunpy import sun  # For Carrington rotation number
 from .representation import (SphericalWrap180Representation,
-                            UnitSphericalWrap180Representation)
+                             UnitSphericalWrap180Representation)
 
 from .frameattributes import TimeFrameAttributeSunPy
 
@@ -54,8 +54,11 @@ class HeliographicStonyhurst(BaseCoordinateFrame):
 
     Examples
     --------
-    >>> sc = SkyCoord(1*u.deg, 1*u.deg, 2*u.km, frame="heliographic_stonyhurst",
-    dateobs="2010/01/01T00:00:45")
+    >>> from astropy.coordinates import SkyCoord
+    >>> import astropy.units as u
+    >>> sc = SkyCoord(1*u.deg, 1*u.deg, 2*u.km,
+    ...               frame="heliographic_stonyhurst",
+    ...               dateobs="2010/01/01T00:00:45")
     >>> sc
     <SkyCoord (HelioGraphicStonyhurst): dateobs=2010-01-01 00:00:45,
     lon=1.0 deg, lat=1.0 deg, rad=2.0 km>
@@ -136,8 +139,11 @@ class HeliographicCarrington(HeliographicStonyhurst):
 
     Examples
     --------
-    >>> sc = SkyCoord(1*u.deg, 2*u.deg, 3*u.km, frame="heliographic_carrington",
-    dateobs="2010/01/01T00:00:30")
+    >>> from astropy.coordinates import SkyCoord
+    >>> import astropy.units as u
+    >>> sc = SkyCoord(1*u.deg, 2*u.deg, 3*u.km,
+    ...               frame="heliographic_carrington",
+    ...               dateobs="2010/01/01T00:00:30")
     >>> sc
     <SkyCoord (HelioGraphicCarrington): dateobs=2010-01-01 00:00:30,
     lon=1.0 deg, lat=2.0 deg, rad=3.0 km>
@@ -192,8 +198,10 @@ class Heliocentric(BaseCoordinateFrame):
 
     Examples
     --------
+    >>> from astropy.coordinates import SkyCoord, CartesianRepresentation
+    >>> import astropy.units as u
     >>> sc = SkyCoord(CartesianRepresentation(10*u.km, 1*u.km, 2*u.km),
-    dateobs="2011/01/05T00:00:50", frame="heliocentric")
+    ...               dateobs="2011/01/05T00:00:50", frame="heliocentric")
     >>> sc
     <SkyCoord (HelioCentric): dateobs=2011-01-05 00:00:50, D0=149597870.7 km,
     x=10.0 km, y=1.0 km, z=2.0 km>
@@ -230,20 +238,26 @@ class Helioprojective(BaseCoordinateFrame):
     representation: `~astropy.coordinates.BaseRepresentation` or None.
         A representation object. If specified, other parameters must
         be in keyword form.
-    Tx: `Angle` object.
+    Tx: `~astropy.coordinates.Angle`  or `~astropy.units.Quantity`
         X-axis coordinate.
-    Ty: `Angle` object.
+    Ty: `~astropy.coordinates.Angle`  or `~astropy.units.Quantity`
         Y-axis coordinate.
-    distance: Z-axis coordinate.
+    distance: `~astropy.units.Quantity`
         The radial distance from the observer to the coordinate point.
+    L0: `~astropy.coordinates.Angle`
+        The Heliographic (Stonyhurst) Longitude of the observer.
+    B0: `~astropy.coordinates.Angle` or `~astropy.units.Quantity`
+        The Heliographic (Stonyhurst) Latitude of the observer.
     D0: `Quantity` object.
         Represents the distance between observer and solar center.
-        Defaults to 1AU.
+        **Defaults to 1 AU**.
 
     Examples
     --------
+    >>> from astropy.coordinates import SkyCoord
+    >>> import astropy.units as u
     >>> sc = SkyCoord(0*u.deg, 0*u.deg, 5*u.km, dateobs="2010/01/01T00:00:00",
-    frame="helioprojective")
+    ...               frame="helioprojective")
     >>> sc
     <SkyCoord (HelioProjective): dateobs=2010-01-01 00:00:00, D0=149597870.7 km
     , Tx=0.0 arcsec, Ty=0.0 arcsec, distance=5.0 km>
@@ -297,7 +311,6 @@ class Helioprojective(BaseCoordinateFrame):
                                                             lon=self._data.lon,
                                                             distance=self._data.distance)
                 self.representation = SphericalWrap180Representation
-
 
     def calculate_distance(self):
         """
