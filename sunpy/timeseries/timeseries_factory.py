@@ -256,10 +256,10 @@ class TimeSeriesFactory(BasicRegistrationFactory):
             # time and convert to datetime if so
             if meta.has_key('DATE-BEG'):
                 # Use 'DATE-BEG' as the start time
-                (Time(parse_time(meta['DATE-BEG'])) + index.quantity.to(u.s)).datetime
+                index = (Time(parse_time(meta['DATE-BEG'])) + index.quantity.to(u.s)).datetime
             elif meta.has_key('DATE-OBS'):
                 # Alternatively, use 'DATE-OBS' as the start time
-                (Time(parse_time(meta['DATE-OBS'])) + index.quantity.to(u.s)).datetime
+                index = (Time(parse_time(meta['DATE-OBS'])) + index.quantity.to(u.s)).datetime
             else:
                 # No start time given, so just use the numbers
                 index = index.quantity.value
