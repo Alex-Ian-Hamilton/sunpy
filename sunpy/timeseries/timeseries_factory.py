@@ -187,6 +187,33 @@ class TimeSeriesFactory(BasicRegistrationFactory):
         # Passed all the tests
         return result
 
+    def _from_fits(self, filepath, **kwargs):
+        """
+        Extract the data, metadata and units from an astropy table  saved fits
+        file, for use in constructing a TimeSeries.
+
+        Parameters
+        ----------
+        filepath: `str`
+            The input filepath.
+            The first column is taken to be the index, either as an astropy Time
+            (mixin column) or as a float/integer in seconds from the startdate.
+
+        Returns
+        -------
+        data : `~pandas.core.frame.DataFrame`
+        meta : `~sunpy.util.metadata.MetaDict`
+        units : `dict`
+        """
+        # Read the file using the AstroPy FITS Table reader
+        try:
+            table = Table.read(filepath)#, astropy_native=True)
+        except:
+            table = Table.read(filepath)
+
+        # Now extract as the Table
+        return self._from_table(table, filepath=filepath)
+
     def _from_table(self, t, **kwargs):
         """
         Extract the data, metadata and units from an astropy table for use in
@@ -216,15 +243,36 @@ class TimeSeriesFactory(BasicRegistrationFactory):
                 raise ValueError("Invalid input Table, TimeSeries doesn't support conversion"
                                  " of tables with more then one index column.")
 
+        # Extract the metadata
+        meta = MetaDict(table.meta)
+
         # Extract, convert and remove the index column from the input table
         index = table[index_name]
-        # Convert if the index is given as an astropy Time object
+        # Convert index
         if isinstance(index, Time):
-            index = index.datetime
-        index = pd.to_datetime(index)
+            pd.to_datetime(index.datetime)
+        elif index.quantity.unit.is_equivalent(u.s):
+            # We have units in seconds (or similar), check if we have a start
+            # time and convert to datetime if so
+            if meta.has_key('DATE-BEG'):
+                # Use 'DATE-BEG' as the start time
+                index = (Time(parse_time(meta['DATE-BEG'])) + index.quantity.to(u.s)).datetime
+            elif meta.has_key('DATE-OBS'):
+                # Alternatively, use 'DATE-OBS' as the start time
+                index = (Time(parse_time(meta['DATE-OBS'])) + index.quantity.to(u.s)).datetime
+            else:
+                # No start time given, so just use the numbers
+                index = index.quantity.value
+        elif index.quantity.unit == u.Unit(''):
+            # We can't determine a scale, so just use the numbers
+            index = index.quantity.value
+        else:
+            # Otherwise, have pandas try and convert into datetime
+            index = pd.to_datetime(index.quantity.value)
+        # Remove the index column from the table
         table.remove_column(index_name)
 
-        # Extract the column values from the table
+        # Extract the column values/units from the table
         data = {}
         units = {}
         for colname in table.colnames:
@@ -233,7 +281,7 @@ class TimeSeriesFactory(BasicRegistrationFactory):
 
         # Create a dataframe with this and return
         df = pd.DataFrame(data=data, index=index)
-        return df, MetaDict(table.meta), units
+        return df, meta, units
 
     def _parse_args(self, *args, **kwargs):
         """
@@ -437,21 +485,54 @@ class TimeSeriesFactory(BasicRegistrationFactory):
                 except (MultipleMatchError, NoMatchError):
                     continue
 
+            # What to do if there is no matching source type
             if not types:
                 # If no specific classes have been found we can read the data
                 # if we only have one data header pair:
                 if len(pairs) == 1:
+                    """
+                    print('pairs[0] '+str(type(pairs[0])))
                     already_timeseries.append(GenericTimeSeries(pairs[0].data,
                                                                 pairs[0].header))
+                    """
+                    # AstroPy Table FITS files have 2 data header pairs
+                    ###print('pairs[0] '+str(type(pairs[0])))
+                    ###print('pairs[1] '+str(type(pairs[1])))
+                    pairs[0].header.pop('KEYCOMMENTS')
+                    HDUPair = astropy.io.fits.BinTableHDU(pairs[0].data, astropy.io.fits.Header(pairs[0].header))
+                    ###print('pairs[1].header\n'+str(pairs[1].header))
+                    ###print('pairs[1].data\n'+str(pairs[1].data))
+
+                    table = Table.read(HDUPair, astropy_native=True)
+                    #already_timeseries.append(self._from_table(tbl_a))
+                    data_header_unit_tuples.append(self._from_table(table))
+                if len(pairs) == 2:
+                    # AstroPy Table FITS files have 2 data header pairs
+                    ###print('pairs[0] '+str(type(pairs[0])))
+                    ###print('pairs[1] '+str(type(pairs[1])))
+                    pairs[1].header.pop('KEYCOMMENTS')
+                    HDUPair = astropy.io.fits.BinTableHDU(pairs[1].data, astropy.io.fits.Header(pairs[1].header))
+                    ###print('pairs[1].header\n'+str(pairs[1].header))
+                    ###print('pairs[1].data\n'+str(pairs[1].data))
+                    """
+                    Currently doesn't work on FITS files made my AstroPy Table with Time column.
+                    Waiting on the following PR to fix that.
+                    https://github.com/astropy/astropy/pull/6442
+                    """
+
+                    table = Table.read(HDUPair, astropy_native=True)
+                    #already_timeseries.append(self._from_table(tbl_a))
+                    data_header_unit_tuples.append(self._from_table(table))
                 else:
                     raise NoMatchError("Input read by sunpy.io can not find a "
                                        "matching class for reading multiple HDUs")
             if len(set(types)) > 1:
+                # Don't support the construction from myltiple TS types
                 raise MultipleMatchError("Multiple HDUs return multiple matching classes.")
-
-            cls = types[0]
-
-            data_header_unit_tuples.append(cls._parse_hdus(pairs))
+            if len(set(types)) == 1:
+                # Use a type/source constructor if we have a matching type
+                cls = types[0]
+                data_header_unit_tuples.append(cls._parse_hdus(pairs))
 
         # Loop over each registered type and check to see if WidgetType
         # matches the arguments.  If it does, use that type
