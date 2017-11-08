@@ -206,4 +206,11 @@ class XRSTimeSeries(GenericTimeSeries):
             if kwargs.get('source', ''):
                 return kwargs.get('source', '').lower().startswith(cls._source)
         if 'meta' in kwargs.keys():
-            return kwargs['meta'].get('TELESCOP', '').startswith('GOES')
+            # Check if a number of the key/value pairs match
+            tel = kwargs['meta'].get('TELESCOP', '').startswith('GOES')
+            ins = kwargs['meta'].get('INSTRUME', '') == ('X-ray Detector')
+            obs = kwargs['meta'].get('OBJECT', '') == ('Sun')
+            ori = kwargs['meta'].get('ORIGIN', '') == ('SDAC/GSFC')
+
+            # If all the above are True, return True
+            return tel and ins and obs and ori
