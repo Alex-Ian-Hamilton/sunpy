@@ -551,9 +551,11 @@ class GenericTimeSeries:
         # Get index column and add to table.
         index_col = Column(self.data.index.values, name='time')
         # Convert to AstroPy Time if we have datetime index
-        if index_col.quantity.value.dtype == np.dtype('<M8[ns]') or index_col.quantity.value.dtype == np.dtype('datetime64[ns]'):
+        #if index_col.quantity.value.dtype == np.dtype('<M8[ns]') or index_col.quantity.value.dtype == np.dtype('datetime64[ns]'):
+        if index_col.quantity.value.dtype.type is np.datetime64:
             # A little hack from https://github.com/astropy/astropy/issues/6428
-            index_col = Time(index_col.view('i8') * u.ms, format='unix')
+            #index_col = Time(index_col.view('i8') * u.ns, format='unix')
+            index_col = Time(index_col.view('i8') * u.Unit(index_col.quantity.value.dtype.str.split('[')[1][:-1]), format='unix')
             #index_col.format = 'isot'
             #index_col = Time(index_col.quantity.value)
         table.add_column(index_col, index=0)
@@ -564,6 +566,10 @@ class GenericTimeSeries:
 
         # Add in metadata
         # Note: currently only adds the first entries metadata
+        if len(self.meta.metadata) > 1:
+            warnings.warn('Warning: metadata has '+str(len(self.meta.metadata))+
+                          ' entries, TimeSeries only supports saving one entry to a FITS file, the first will be saved.', Warning)
+
         table.meta = self.meta.metadata[0][2]
         for key, value in table.meta.items():
             if isinstance(value, Time):
@@ -625,8 +631,8 @@ class GenericTimeSeries:
 
     def __eq__(self, other):
         """
-        Check two TimeSeries objects are the same, they have matching type, data,
-        metadata and units entries.
+        Check two TimeSeries objects are the same (equal) and so have matching
+        type, data, metadata and units entries.
 
         Parameters
         ----------
