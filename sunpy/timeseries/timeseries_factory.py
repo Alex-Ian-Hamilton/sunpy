@@ -250,7 +250,7 @@ class TimeSeriesFactory(BasicRegistrationFactory):
         index = table[index_name]
         # Convert index
         if isinstance(index, Time):
-            pd.to_datetime(index.datetime)
+            index = pd.to_datetime(index.datetime)
         elif index.quantity.unit.is_equivalent(u.s):
             # We have units in seconds (or similar), check if we have a start
             # time and convert to datetime if so

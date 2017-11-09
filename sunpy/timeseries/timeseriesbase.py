@@ -14,6 +14,7 @@ import copy
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 from sunpy import config
 from sunpy.time import TimeRange
@@ -23,8 +24,8 @@ from sunpy.util.metadata import MetaDict
 
 import astropy
 import astropy.units as u
-from astropy.table import Table
-from astropy.table import Column
+from astropy.table import Table, Column
+from astropy.time import Time
 
 # define and register a new unit, needed for RHESSI
 det = u.def_unit('detector')
@@ -548,12 +549,26 @@ class GenericTimeSeries:
         table = Table.from_pandas(self.data)
 
         # Get index column and add to table.
-        index_col = Column(self.data.index.values, name='date')
+        index_col = Column(self.data.index.values, name='time')
+        # Convert to AstroPy Time if we have datetime index
+        if index_col.quantity.value.dtype == np.dtype('<M8[ns]') or index_col.quantity.value.dtype == np.dtype('datetime64[ns]'):
+            # A little hack from https://github.com/astropy/astropy/issues/6428
+            index_col = Time(index_col.view('i8') * u.ms, format='unix')
+            #index_col.format = 'isot'
+            #index_col = Time(index_col.quantity.value)
         table.add_column(index_col, index=0)
 
         # Add in units.
         for key in self.units:
             table[key].unit = self.units[key]
+
+        # Add in metadata
+        # Note: currently only adds the first entries metadata
+        table.meta = self.meta.metadata[0][2]
+        for key, value in table.meta.items():
+            if isinstance(value, Time):
+                table.meta[key].format = 'isot'
+                table.meta[key] = str(table.meta[key])
 
         # Output the table
         return table
@@ -586,6 +601,27 @@ class GenericTimeSeries:
             the result will be of dtype=object. See Notes.
         """
         return self.data.as_matrix(**kwargs)
+
+# #### I/O routines #### #
+
+    def save(self, filepath, filetype='auto', overwrite=False, format='fits', **kwargs):
+        """Saves the SunPy TimeSeries object to a FITS file.
+
+        Currently SunPy can only save files in the FITS format. In the future
+        support will be added for saving to other formats.
+
+        Parameters
+        ----------
+        filepath : str
+            Location to save file to.
+
+        overwrite : bool
+            Option to overwrite pre-existing files.
+
+        format : str
+            'auto' or any supported file extension
+        """
+        self.to_table().write(filepath, format=format, overwrite=overwrite)
 
     def __eq__(self, other):
         """
