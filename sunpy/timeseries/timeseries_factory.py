@@ -13,6 +13,7 @@ from astropy.table import Table
 import astropy
 from astropy.time import Time
 import astropy.units as u
+from astropy.table.column import MaskedColumn
 
 import sunpy
 from sunpy.timeseries.timeseriesbase import GenericTimeSeries, TIMESERIES_CLASSES
@@ -275,8 +276,23 @@ class TimeSeriesFactory(BasicRegistrationFactory):
         # Extract the column values/units from the table
         data = {}
         units = {}
-        for colname in table.colnames:
-            data[colname] = table[colname]
+        for colname, column in table.columns.items():
+            # Coppied from AstroPy Table  def to_pandas(self)
+            if isinstance(column, MaskedColumn):
+                if column.dtype.kind in ['i', 'u']:
+                    data[colname] = column.astype(float).filled(np.nan)
+                elif column.dtype.kind in ['f', 'c']:
+                    data[colname] = column.filled(np.nan)
+                else:
+                    data[colname] = column.astype(object).filled(np.nan)
+            else:
+                data[colname] = column
+
+            # Changes the endianness of the data
+            if data[colname].dtype.byteorder not in ('=', '|'):
+                data[colname] = data[colname].byteswap().newbyteorder()
+
+            # Add the units
             units[colname] = table[colname].unit
 
         # Create a dataframe with this and return

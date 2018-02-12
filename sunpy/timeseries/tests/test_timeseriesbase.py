@@ -9,6 +9,7 @@ Created on Thu Jun 23 12:29:55 2016
 
 import os
 import glob
+import tempfile
 import pytest
 import datetime
 import warnings
@@ -735,6 +736,71 @@ def test_generic_ts_invalid_peek(generic_ts):
     empty_ts = generic_ts.truncate(TimeRange(a, b))
     with pytest.raises(ValueError):
         empty_ts.peek()
+
+#==============================================================================
+# Test Save/Load Functionality
+#==============================================================================
+
+
+def test_save_load_eve(eve_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    eve_test_ts.save(afilename)
+    eve_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert eve_test_ts == eve_test_ts_loaded
+
+def test_save_load_fermi_gbm(fermi_gbm_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    fermi_gbm_test_ts.save(afilename)
+    fermi_gbm_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert fermi_gbm_test_ts == fermi_gbm_test_ts_loaded
+
+def test_save_load_norh(norh_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    norh_test_ts.save(afilename)
+    norh_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert norh_test_ts == norh_test_ts_loaded
+
+def test_save_load_goes(goes_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    goes_test_ts.save(afilename)
+    goes_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert goes_test_ts == goes_test_ts_loaded
+
+def test_save_load_lyra(lyra_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    lyra_test_ts.save(afilename)
+    lyra_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert lyra_test_ts == lyra_test_ts_loaded
+
+def test_save_load_rhessi(rhessi_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    rhessi_test_ts.save(afilename)
+    rhessi_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert rhessi_test_ts == rhessi_test_ts_loaded
+
+def test_save_load_noaa_ind(noaa_ind_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    noaa_ind_test_ts.save(afilename)
+    noaa_ind_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert noaa_ind_test_ts == noaa_ind_test_ts_loaded
+
+def test_save_load_noaa_pre(noaa_pre_test_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    noaa_pre_test_ts.save(afilename)
+    noaa_pre_test_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert noaa_pre_test_ts == noaa_pre_test_ts_loaded
+
+def test_save_load_generic(generic_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    generic_ts.save(afilename)
+    generic_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert generic_ts == generic_ts_loaded
+
+def test_save_load_table(table_ts):
+    afilename = tempfile.NamedTemporaryFile(suffix='fits').name
+    table_ts.save(afilename)
+    table_ts_loaded = sunpy.timeseries.TimeSeries(afilename)
+    assert table_ts == table_ts_loaded
 
 #==============================================================================
 # Test Other Functions

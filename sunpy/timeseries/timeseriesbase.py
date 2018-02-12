@@ -610,7 +610,7 @@ class GenericTimeSeries:
 
 # #### I/O routines #### #
 
-    def save(self, filepath, filetype='auto', overwrite=False, format='fits', **kwargs):
+    def save(self, filepath, filetype='auto', overwrite=False, **kwargs):
         """Saves the SunPy TimeSeries object to a FITS file.
 
         Currently SunPy can only save files in the FITS format. In the future
@@ -625,9 +625,44 @@ class GenericTimeSeries:
             Option to overwrite pre-existing files.
 
         format : str
-            'auto' or any supported file extension
+            'auto' or any supported file extension.
+            Currently supports 'fits' and 'h5'.
+            H5 support is primarily because it's more native to Pandas DataFrame,
+            so it may work at times that FITS doesn't.
         """
-        self.to_table().write(filepath, format=format, overwrite=overwrite)
+        if filetype.lower()=='fits' or filetype.lower()=='auto':
+            self.to_table().write(filepath, format='fits', overwrite=overwrite)
+        elif filetype=='hdf' or filetype=='h5':
+            h5_store = pd.HDFStore(filepath)
+            h5_store['data'] = self.data
+
+            # Adding units
+            dic_unit_strings = OrderedDict()
+            for key, value in self.units.items():
+                dic_unit_strings[key] = value.to_string()
+            df_units = pd.DataFrame(data=dic_unit_strings, index=[0])
+            h5_store['units'] = df_units
+            """
+            u.Unit(df_units['xrsa'].values[0])
+            """
+
+            # Adding Metadata
+            #lis_odic_meta = []
+            #for lis_meta_entry in goes.meta.metadata:
+            dic_meta_strings = OrderedDict()
+            for key, value in self.meta.metadata[0][2].items():
+                dic_meta_strings[key] = str(value)
+            df_meta = pd.DataFrame(data=dic_meta_strings, index=[0])
+            h5_store['meta'] = df_meta
+            h5_store.close()
+        elif filetype.lower()=='csv':
+            warnings.warn("Warning: saving a TimeSeries to CSV will not save the metadata or units.", Warning)
+            self.data.to_csv(filepath)
+        elif filetype.lower()=='tsv':
+            warnings.warn("Warning: saving a TimeSeries to TSV will not save the metadata or units.", Warning)
+            self.data.to_csv(filepath, sep='\t')
+
+
 
     def __eq__(self, other):
         """
