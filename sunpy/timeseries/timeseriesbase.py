@@ -75,9 +75,13 @@ class GenericTimeSeries:
         of time.
     meta : `~sunpy.timeseries.metadata.TimeSeriesMetaData`, optional
         The metadata giving details about the time series data/instrument.
-    units : dict, optional
+    units : `dict`, optional
         A mapping from column names in *data* to the physical units of
-        that column.
+        that column. Should have `str` column name keys and astropy units values.
+        Columns without units can either be explicitly added with a unit value
+        of `~astropy.units.dimensionless_unscaled`, otherwise any column not
+        included in units will be implicitly interpreted to be `~astropy.units.dimensionless_unscaled`.
+
 
     Attributes
     ----------
@@ -86,9 +90,10 @@ class GenericTimeSeries:
         of time.
     meta : `~sunpy.timeseries.metadata.TimeSeriesMetaData`
         The metadata giving details about the time series data/instrument.
-    units : dict
-        A mapping from column names in *data* to the physical units of
-        that column.
+    units : `dict`
+        A mapping from `str` column names in *data* to the physical astropy
+        units of that column.
+
 
     Examples
     --------
@@ -165,7 +170,7 @@ class GenericTimeSeries:
         """
         return TimeRange(self.data.index.min(), self.data.index.max())
 
-# #### Data Access, Selection and Organisation Methods #### #
+# #### Data Access, Selection and Manipulation Methods #### #
 
     def quantity(self, colname, **kwargs):
         """
@@ -416,14 +421,14 @@ class GenericTimeSeries:
             Any additional plot arguments that should be used when plotting.
         """
         # Check we have a timeseries valid for plotting
-        self._validate_data_for_ploting()
+        self._validate_data_for_plotting()
 
         # Now make the plot
         figure = plt.figure()
         self.plot(**kwargs)
         figure.show()
 
-    def _validate_data_for_ploting(self):
+    def _validate_data_for_plotting(self):
         """Raises an exception if the timeseries is invalid for plotting.
         To be added into all the peek methods in all source sup-classes.
         Currently only checks if we have an empty timeseries, where:
@@ -477,7 +482,7 @@ class GenericTimeSeries:
 
         result = True
         for key in units:
-            if not isinstance(units[key], astropy.units.UnitBase):
+            if not isinstance(units[key], astropy.units.UnitBase) or units[key] is None:
                 # If this is not a unit then this can't be a valid units dict.
                 result = False
                 warnings.warn("Invalid unit given for \""+str(key)+"\"", Warning)

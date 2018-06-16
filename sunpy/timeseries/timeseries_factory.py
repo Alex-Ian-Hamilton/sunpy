@@ -167,7 +167,7 @@ class TimeSeriesFactory(BasicRegistrationFactory):
         """
         Validates the astropy unit-information associated with a TimeSeries.
         Should be a dictionary of some form (but not MetaDict) with only
-        astropy units for values.
+        string keys for column names and astropy units (or NoneType) for values.
         """
 
         warnings.simplefilter('always', Warning)
@@ -177,8 +177,17 @@ class TimeSeriesFactory(BasicRegistrationFactory):
         if not isinstance(units, dict) or isinstance(units, MetaDict):
             return False
 
+        # Check each key/value entry
         for key in units:
-            if not isinstance(units[key], u.UnitBase):
+            # All keys must be strings
+            if not isinstance(key, str):
+                return False
+            
+            # All values must be astropy units or NoneType
+            if units[key] is None:
+                # If given a NoneType then convert into dimensionless unit
+                units[key] = u.dimensionless_unscaled
+            elif not isinstance(units[key], u.UnitBase):
                 # If this is not a unit then this can't be a valid units dict.
                 return False
 
